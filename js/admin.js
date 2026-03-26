@@ -709,12 +709,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
+            // Delete dependent rows first to support databases that were migrated
+            // without CASCADE constraints on older tables.
+            const { error: eligibilityDeleteError } = await supabaseAdmin
+                .from('election_eligible_students')
+                .delete()
+                .eq('student_id', id);
+            if (eligibilityDeleteError && !isPermissionDeniedError(eligibilityDeleteError)) {
+                throw eligibilityDeleteError;
+            }
+
+            const { error: votesDeleteError } = await supabaseAdmin
+                .from('votes')
+                .delete()
+                .eq('student_id', id);
+            if (votesDeleteError && !isPermissionDeniedError(votesDeleteError)) {
+                throw votesDeleteError;
+            }
+
             const { error } = await supabaseAdmin
                 .from('students')
                 .delete()
                 .eq('id', id);
 
-            if (error) throw error;
+            if (error) {
+                if (isPermissionDeniedError(error)) {
+                    throw new Error('Delete blocked by database policy. Run security-hardening.sql and ensure your admin account exists in the admins table.');
+                }
+                throw error;
+            }
 
             showToast('Student deleted successfully!', 'success');
             loadStudents();
