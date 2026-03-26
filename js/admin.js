@@ -3,6 +3,46 @@ import { SUPABASE_URL, supabase, supabaseAdmin } from "../supabase-config.js";
 import { initThemeToggle } from "./theme.js";
 import { RealtimeManager } from "./realtime.js";
 
+// Input Validation Functions
+function validateStudentInput(name, email, studentId, department) {
+    const errors = [];
+    
+    if (!name?.trim()) errors.push('Student name is required');
+    else if (name.length > 255) errors.push('Student name is too long (max 255 characters)');
+    else if (!/^[\w\s\-'&.]+$/i.test(name)) errors.push('Student name contains invalid characters');
+    
+    if (!email?.trim()) errors.push('Email is required');
+    else if (email.length > 255) errors.push('Email is too long (max 255 characters)');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Valid email address required');
+    
+    if (!studentId?.trim()) errors.push('Student ID is required');
+    else if (studentId.length > 50) errors.push('Student ID is too long (max 50 characters)');
+    else if (!/^[\w\-]+$/.test(studentId)) errors.push('Student ID contains invalid characters');
+    
+    if (department && department.length > 100) errors.push('Department name is too long (max 100 characters)');
+    
+    return { valid: errors.length === 0, errors };
+}
+
+function validatePositionInput(name) {
+    const errors = [];
+    if (!name?.trim()) errors.push('Position name is required');
+    else if (name.length > 255) errors.push('Position name is too long (max 255 characters)');
+    else if (!/^[\w\s\-&.()]+$/i.test(name)) errors.push('Position name contains invalid characters');
+    return { valid: errors.length === 0, errors };
+}
+
+function validateCandidateInput(name, positionId) {
+    const errors = [];
+    if (!name?.trim()) errors.push('Candidate name is required');
+    else if (name.length > 255) errors.push('Candidate name is too long (max 255 characters)');
+    else if (!/^[\w\s\-'&.()]+$/i.test(name)) errors.push('Candidate name contains invalid characters');
+    
+    if (!positionId) errors.push('Position is required');
+    
+    return { valid: errors.length === 0, errors };
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
     if (/\/admin\/election\.html$/i.test(window.location.pathname)) {
@@ -585,13 +625,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // Validate input
+                const validation = validateStudentInput(name, email, studentId, department);
+                if (!validation.valid) {
+                    showAlertModal(validation.errors.join('\n'), 'Validation Error');
+                    return;
+                }
+
                 const { data, error } = await supabaseAdmin
                     .from('students')
                     .insert([{
-                        name: name,
-                        student_id: studentId,
-                        email: email,
-                        department: department,
+                        name: name.trim(),
+                        student_id: studentId.trim(),
+                        email: email.trim().toLowerCase(),
+                        department: department?.trim() || null,
                         has_voted: false
                     }])
                     .select();
@@ -679,13 +726,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const department = document.getElementById('edit-department').value;
 
                 try {
+                    // Validate input
+                    const validation = validateStudentInput(name, email, studentId, department);
+                    if (!validation.valid) {
+                        showAlertModal(validation.errors.join('\n'), 'Validation Error');
+                        return;
+                    }
+
                     const { error } = await supabaseAdmin
                         .from('students')
                         .update({
-                            name: name,
-                            student_id: studentId,
-                            email: email,
-                            department: department
+                            name: name.trim(),
+                            student_id: studentId.trim(),
+                            email: email.trim().toLowerCase(),
+                            department: department?.trim() || null
                         })
                         .eq('id', currentEditStudentId);
 

@@ -24,7 +24,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (sessionValue) {
             try {
-                return JSON.parse(sessionValue);
+                const session = JSON.parse(sessionValue);
+                // Check if session has expired
+                if (session?.sessionIssuedAt && (Date.now() - Number(session.sessionIssuedAt) > STUDENT_SESSION_MAX_AGE_MS)) {
+                    clearStudentSession();
+                    return null;
+                }
+                return session;
             } catch {
                 try {
                     sessionStorage.removeItem(STUDENT_SESSION_KEY);
@@ -44,6 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (localValue) {
             try {
                 const parsed = JSON.parse(localValue);
+                // Check if session has expired
+                if (parsed?.sessionIssuedAt && (Date.now() - Number(parsed.sessionIssuedAt) > STUDENT_SESSION_MAX_AGE_MS)) {
+                    clearStudentSession();
+                    return null;
+                }
                 try {
                     sessionStorage.setItem(STUDENT_SESSION_KEY, JSON.stringify(parsed));
                 } catch {
@@ -362,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error('Please select candidates before submitting.');
                 }
 
-                updateSubmitAvailability(false);
+                updateSubmitAvailability(false); // Disable immediately to prevent double-submission
                 setVoteMessage('Submitting your vote...', 'default');
 
                 // Insert all votes first. Unique constraint on (student_id, position_id)
@@ -395,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Error submitting vote:', error);
                 const message = error?.message || 'Error submitting vote. Please try again.';
                 setVoteMessage(message, 'error');
-                updateSubmitAvailability(true);
+                updateSubmitAvailability(true); // Re-enable on error
             }
         });
     }

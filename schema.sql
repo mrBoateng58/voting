@@ -92,14 +92,16 @@ CREATE POLICY "Allow anyone to view positions" ON "positions"
   FOR SELECT USING (true);
 
 CREATE POLICY "Allow admins to manage positions" ON "positions"
-  FOR ALL USING (auth.role() = 'service_role');
+  FOR ALL USING (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()))
+  WITH CHECK (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 
 -- RLS Policies for candidates table
 CREATE POLICY "Allow anyone to view candidates" ON "candidates"
   FOR SELECT USING (true);
 
 CREATE POLICY "Allow admins to manage candidates" ON "candidates"
-  FOR ALL USING (auth.role() = 'service_role');
+  FOR ALL USING (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()))
+  WITH CHECK (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 
 -- RLS Policies for votes table
 CREATE POLICY "Allow students to insert their own votes" ON "votes"
@@ -109,7 +111,7 @@ CREATE POLICY "Allow students to see their own votes" ON "votes"
   FOR SELECT USING (auth.uid() = student_id);
 
 CREATE POLICY "Allow admins to see all votes" ON "votes"
-  FOR SELECT USING (auth.role() = 'service_role');
+  FOR SELECT USING (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 
 -- RLS Policies for election_settings table
 CREATE POLICY "Allow anyone to view election settings" ON "election_settings"
