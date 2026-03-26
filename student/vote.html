@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg">
+    <title>Vote - Regent Voting System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/student.css">
+</head>
+<body>
+    <div class="student-shell">
+        <div class="container">
+            <header class="student-header">
+                <div class="student-brand">
+                    <i class="fa-solid fa-check-to-slot"></i>
+                    <div>
+                        <h1>Voting Ballot</h1>
+                        <p class="subtitle">Choose one candidate per position.</p>
+                    </div>
+                </div>
+                <div class="student-header-actions">
+                    <a href="dashboard.html" class="btn"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+                    <button id="logout" class="btn-danger" type="button"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                </div>
+            </header>
+
+            <section class="student-card">
+                <form id="vote-form"></form>
+                <div class="vote-submit-wrap">
+                    <button type="submit" form="vote-form"><i class="fa-solid fa-paper-plane"></i> Submit Vote</button>
+                </div>
+                <p id="error-message" class="error-message"></p>
+                <div id="vote-success-actions" class="vote-success-actions hidden" aria-live="polite">
+                    <a href="dashboard.html" class="btn"><i class="fa-solid fa-house"></i> Go to Dashboard</a>
+                    <button id="stay-on-ballot" type="button" class="btn-secondary"><i class="fa-solid fa-eye"></i> Stay on this page</button>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="../js/student.js"></script>
+</body>
+</html>

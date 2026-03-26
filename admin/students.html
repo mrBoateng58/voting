@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg">
+    <title>Manage Students - Regent Voting System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+    <!-- Mobile Toggle Button -->
+    <button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Open admin navigation" aria-controls="sidebar" aria-expanded="false" type="button">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" onclick="closeSidebar()" tabindex="0" role="button" aria-label="Close navigation"></div>
+
+    <div class="admin-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg" alt="Regent University">
+                </div>
+                <h2><i class="fas fa-crown"></i> Admin</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li style="--i: 0"><a href="dashboard.html"><i class="nav-icon fas fa-chart-line"></i><span class="nav-text">Dashboard</span></a></li>
+                    <li style="--i: 1"><a href="students.html" class="active"><i class="nav-icon fas fa-users"></i><span class="nav-text">Manage Students</span></a></li>
+                    <li style="--i: 2"><a href="positions.html"><i class="nav-icon fas fa-trophy"></i><span class="nav-text">Manage Positions</span></a></li>
+                    <li style="--i: 3"><a href="candidates.html"><i class="nav-icon fas fa-user-tie"></i><span class="nav-text">Manage Candidates</span></a></li>
+                    <li style="--i: 4"><a href="election.html"><i class="nav-icon fas fa-cogs"></i><span class="nav-text">Election Control</span></a></li>
+                    <li style="--i: 5"><a href="results.html"><i class="nav-icon fas fa-chart-bar"></i><span class="nav-text">View Results</span></a></li>
+                    <li style="--i: 6"><a href="#" id="logout"><i class="nav-icon fas fa-sign-out-alt"></i><span class="nav-text">Logout</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-header">
+                <h1>Manage Students</h1>
+                <p class="subtitle">Add, edit, and manage student accounts</p>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>Add New Student</h2>
+                </div>
+                <form id="add-student-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="student-id">Student ID</label>
+                            <input type="text" id="student-id" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="department">Department</label>
+                            <input type="text" id="department">
+                        </div>
+                    </div>
+                    <button type="submit">Add Student</button>
+                </form>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="table-toolbar">
+                        <div>
+                            <h2>All Students</h2>
+                            <p class="section-subtitle">Manage existing student accounts</p>
+                        </div>
+                        <div class="table-toolbar-actions">
+                            <a href="../student-import-template.csv" download class="btn btn-secondary">
+                                <i class="fas fa-download"></i> Download Template
+                            </a>
+                            <button id="import-excel-btn" type="button" class="btn btn-primary">
+                                <i class="fas fa-file-excel"></i> Import Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="students-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Student ID</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Voted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Edit Student Modal -->
+            <div id="edit-modal" class="students-modal" role="dialog" aria-modal="true" aria-labelledby="edit-student-title">
+                <div class="students-modal-panel">
+                    <h2 id="edit-student-title">Edit Student</h2>
+                    <form id="edit-student-form">
+                        <div class="form-group">
+                            <label for="edit-name">Full Name</label>
+                            <input type="text" id="edit-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-student-id">Student ID</label>
+                            <input type="text" id="edit-student-id" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-email">Email</label>
+                            <input type="email" id="edit-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-department">Department</label>
+                            <input type="text" id="edit-department">
+                        </div>
+                        <div class="students-modal-actions">
+                            <button type="button" id="close-edit-modal" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Hidden Excel Import Input -->
+            <input type="file" id="excel-import-input" accept=".xlsx,.xls,.csv" class="hidden" />
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="../js/admin.js"></script>
+
+    <!-- Mobile Sidebar Toggle Script -->
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+            document.querySelector('.mobile-toggle')?.setAttribute('aria-expanded', sidebar.classList.contains('open') ? 'true' : 'false');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            document.querySelector('.mobile-toggle')?.setAttribute('aria-expanded', 'false');
+        }
+
+        // Close sidebar when clicking on a navigation link on mobile
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.sidebar-nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            // Close sidebar on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeSidebar();
+                }
+            });
+
+            const closeEditBtn = document.getElementById('close-edit-modal');
+            if (closeEditBtn) {
+                closeEditBtn.addEventListener('click', function() {
+                    const modal = document.getElementById('edit-modal');
+                    if (modal) modal.style.display = 'none';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

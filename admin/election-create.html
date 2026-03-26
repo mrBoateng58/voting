@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg">
+    <title>Create Election - Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css?v=2">
+    <link rel="stylesheet" href="../css/admin.css?v=2">
+</head>
+<body>
+    <button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Open admin navigation" aria-controls="sidebar" aria-expanded="false" type="button">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="sidebar-overlay" onclick="closeSidebar()" tabindex="0" role="button" aria-label="Close navigation"></div>
+
+    <div class="admin-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg" alt="Regent University">
+                </div>
+                <h2><i class="fas fa-crown"></i> Admin</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="dashboard.html"><i class="nav-icon fas fa-chart-line"></i><span class="nav-text">Dashboard</span></a></li>
+                    <li><a href="students.html"><i class="nav-icon fas fa-users"></i><span class="nav-text">Manage Students</span></a></li>
+                    <li><a href="positions.html"><i class="nav-icon fas fa-trophy"></i><span class="nav-text">Manage Positions</span></a></li>
+                    <li><a href="candidates.html"><i class="nav-icon fas fa-user-tie"></i><span class="nav-text">Manage Candidates</span></a></li>
+                    <li><a href="election.html"><i class="nav-icon fas fa-cogs"></i><span class="nav-text">Election Control</span></a></li>
+                    <li><a href="results.html"><i class="nav-icon fas fa-chart-bar"></i><span class="nav-text">View Results</span></a></li>
+                    <li><a href="#" id="logout"><i class="nav-icon fas fa-sign-out-alt"></i><span class="nav-text">Logout</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-header">
+                <h1><i class="fas fa-plus-circle"></i> Create New Election</h1>
+                <p class="subtitle">Set up a new election with start and end times</p>
+            </div>
+
+            <div class="setup-progress" aria-label="Election setup progress">
+                <div class="setup-step active">1. Create</div>
+                <div class="setup-step">2. Candidates</div>
+                <div class="setup-step">3. Eligibility</div>
+                <div class="setup-step">4. History</div>
+            </div>
+
+            <div class="section-card create-form-wrapper">
+                <div id="successMessage" class="alert alert-success hidden"></div>
+                <div id="errorMessage" class="alert alert-error hidden"></div>
+                <div id="infoMessage" class="alert alert-info hidden"></div>
+
+                <form id="createElectionForm" onsubmit="handleCreateElection(event)">
+                    <div class="form-group">
+                        <label for="electionName"><i class="fas fa-edit"></i> Election Name *</label>
+                        <input 
+                            type="text" 
+                            id="electionName" 
+                            name="electionName" 
+                            placeholder="e.g., USSSA Student President 2026"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-alt"></i> Election Period *</label>
+                        <div class="datetime-group">
+                            <div>
+                                <label for="startTime" class="small-label">Start Time</label>
+                                <input 
+                                    type="datetime-local" 
+                                    id="startTime" 
+                                    name="startTime"
+                                    required
+                                >
+                            </div>
+                            <div>
+                                <label for="endTime" class="small-label">End Time</label>
+                                <input 
+                                    type="datetime-local" 
+                                    id="endTime" 
+                                    name="endTime"
+                                    required
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="submitBtn"><i class="fas fa-check"></i> Create Election</button>
+                        <button type="button" class="btn btn-secondary" id="clone-last-election-btn"><i class="fas fa-copy"></i> Clone Last Setup</button>
+                        <button type="reset" class="btn btn-secondary"><i class="fas fa-redo"></i> Clear Form</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="../js/admin.js"></script>
+    <script>
+        // Initialize page when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.setMinDateTime) {
+                window.setMinDateTime();
+            }
+            
+            // Auto-focus first invalid field for better UX
+            const form = document.getElementById('createElectionForm');
+            if (form) {
+                form.addEventListener('invalid', (e) => {
+                    e.preventDefault();
+                    e.target.focus();
+                }, true);
+            }
+        });
+    </script>
+
+</body>
+</html>

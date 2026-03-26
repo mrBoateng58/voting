@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg">
+    <title>Student Dashboard - Regent Voting System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/student.css">
+</head>
+<body>
+    <div class="student-shell">
+        <div class="container">
+            <header class="student-header">
+                <div class="student-brand">
+                    <img src="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg" alt="Regent University" class="brand-logo">
+                    <div>
+                        <h1>Student Dashboard</h1>
+                        <p class="subtitle">Welcome back, <span id="student-name"></span></p>
+                    </div>
+                </div>
+                <a href="vote.html" class="btn"><i class="fa-solid fa-pen-to-square"></i> Cast Vote</a>
+            </header>
+
+            <section class="student-content">
+                <article class="student-card" id="election-status-card">
+                    <h2>Current Election Status</h2>
+                    <p class="subtitle" id="election-status-summary">Checking election availability...</p>
+                    <div class="status-grid" id="election-status-grid" aria-live="polite">
+                        <div class="status-item">
+                            <span class="status-label">Election</span>
+                            <strong id="status-election">Checking...</strong>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Eligibility</span>
+                            <strong id="status-eligibility">Checking...</strong>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Your Vote</span>
+                            <strong id="status-vote">Checking...</strong>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="student-card">
+                    <h2>Election Access</h2>
+                    <p class="subtitle">Use the Cast Vote button to open your ballot when an election is active.</p>
+                    <div class="student-actions">
+                        <button id="logout" class="btn-danger"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+                    </div>
+                </article>
+            </section>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="../js/student.js"></script>
+</body>
+</html>

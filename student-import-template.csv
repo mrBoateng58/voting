@@ -1,0 +1,3 @@
+name,email,student_id,password,department
+John Doe,john.doe@regent.edu,RU001,Password123,Computer Science
+Jane Smith,jane.smith@regent.edu,RU002,Password123,Business Administration

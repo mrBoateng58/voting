@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg">
+    <title>Election History - Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css?v=2">
+    <link rel="stylesheet" href="../css/admin.css?v=2">
+</head>
+<body>
+    <button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Open admin navigation" aria-controls="sidebar" aria-expanded="false" type="button">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="sidebar-overlay" onclick="closeSidebar()" tabindex="0" role="button" aria-label="Close navigation"></div>
+
+    <div class="admin-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg" alt="Regent University">
+                </div>
+                <h2><i class="fas fa-crown"></i> Admin</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="dashboard.html"><i class="nav-icon fas fa-chart-line"></i><span class="nav-text">Dashboard</span></a></li>
+                    <li><a href="students.html"><i class="nav-icon fas fa-users"></i><span class="nav-text">Manage Students</span></a></li>
+                    <li><a href="positions.html"><i class="nav-icon fas fa-trophy"></i><span class="nav-text">Manage Positions</span></a></li>
+                    <li><a href="candidates.html"><i class="nav-icon fas fa-user-tie"></i><span class="nav-text">Manage Candidates</span></a></li>
+                    <li><a href="election.html"><i class="nav-icon fas fa-cogs"></i><span class="nav-text">Election Control</span></a></li>
+                    <li><a href="results.html"><i class="nav-icon fas fa-chart-bar"></i><span class="nav-text">View Results</span></a></li>
+                    <li><a href="#" id="logout"><i class="nav-icon fas fa-sign-out-alt"></i><span class="nav-text">Logout</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-header">
+                <h1>Election History</h1>
+                <p class="subtitle">Review winners, turnout, full vote history, and delete elections</p>
+            </div>
+
+            <div class="setup-progress" aria-label="Election setup progress">
+                <div class="setup-step done">1. Create</div>
+                <div class="setup-step done">2. Candidates</div>
+                <div class="setup-step done">3. Eligibility</div>
+                <div class="setup-step active">4. History</div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>Select Election</h2>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="election-select">Election</label>
+                        <select id="election-select"></select>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item"><strong>Status:</strong> <span id="selected-election-status">-</span></div>
+                        <div class="info-item"><strong>Start Time:</strong> <span id="selected-election-start">-</span></div>
+                        <div class="info-item"><strong>End Time:</strong> <span id="selected-election-end">-</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>Selected Election History</h2>
+                    <p class="section-subtitle">Turnout, winners, and full vote activity for the selected election</p>
+                </div>
+
+                <div class="card-body compact">
+                    <div class="info-grid">
+                        <div class="info-item"><strong>Eligible Students:</strong> <span id="history-eligible-count">0</span></div>
+                        <div class="info-item"><strong>Voted:</strong> <span id="history-voted-count">0</span></div>
+                        <div class="info-item"><strong>Did Not Vote:</strong> <span id="history-not-voted-count">0</span></div>
+                        <div class="info-item"><strong>Turnout:</strong> <span id="history-turnout">0%</span></div>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <h2>Winners By Position</h2>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th>Winner</th>
+                                <th>Votes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-winners-list"></tbody>
+                    </table>
+                </div>
+
+                <div class="section-header">
+                    <h2>Candidate Vote Status</h2>
+                    <p class="section-subtitle">Shows who was voted for and who was not</p>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Candidate</th>
+                                <th>Position</th>
+                                <th>Votes</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-candidate-votes-list"></tbody>
+                    </table>
+                </div>
+
+                <div class="section-header">
+                    <h2>Vote Activity</h2>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Student</th>
+                                <th>Student ID</th>
+                                <th>Position</th>
+                                <th>Candidate</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-vote-activity-list"></tbody>
+                    </table>
+                </div>
+
+                <div class="table-toolbar">
+                    <div class="table-toolbar-actions">
+                    <button id="export-election-csv" type="button" class="btn-primary"><i class="fas fa-file-csv"></i> Export CSV</button>
+                    <button id="delete-selected-election" type="button" class="btn-danger"><i class="fas fa-trash"></i> Delete Selected Election</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="../js/admin.js"></script>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/jpeg" href="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg">
+    <title>Manage Positions - Regent Voting System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css?v=2">
+    <link rel="stylesheet" href="../css/admin.css?v=2">
+</head>
+<body>
+    <button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Open admin navigation" aria-controls="sidebar" aria-expanded="false" type="button">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="sidebar-overlay" onclick="closeSidebar()" tabindex="0" role="button" aria-label="Close navigation"></div>
+
+    <div class="admin-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <img src="../images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg" alt="Regent University">
+                </div>
+                <h2><i class="fas fa-crown"></i> Admin</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="dashboard.html"><i class="nav-icon fas fa-chart-line"></i><span class="nav-text">Dashboard</span></a></li>
+                    <li><a href="students.html"><i class="nav-icon fas fa-users"></i><span class="nav-text">Manage Students</span></a></li>
+                    <li><a href="positions.html" class="active"><i class="nav-icon fas fa-trophy"></i><span class="nav-text">Manage Positions</span></a></li>
+                    <li><a href="candidates.html"><i class="nav-icon fas fa-user-tie"></i><span class="nav-text">Manage Candidates</span></a></li>
+                    <li><a href="election.html"><i class="nav-icon fas fa-cogs"></i><span class="nav-text">Election Control</span></a></li>
+                    <li><a href="results.html"><i class="nav-icon fas fa-chart-bar"></i><span class="nav-text">View Results</span></a></li>
+                    <li><a href="#" id="logout"><i class="nav-icon fas fa-sign-out-alt"></i><span class="nav-text">Logout</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-header">
+                <h1>Manage Positions</h1>
+                <p class="subtitle">Create and manage election positions</p>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>Add New Position</h2>
+                </div>
+                <form id="add-position-form">
+                    <div class="form-group">
+                        <label for="position-name">Position Name</label>
+                        <input type="text" id="position-name" required placeholder="e.g. President, Vice President">
+                    </div>
+                    <button type="submit">Add Position</button>
+                </form>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>All Positions</h2>
+                    <p class="section-subtitle">Manage existing election positions</p>
+                </div>
+                <div class="table-container">
+                    <table id="positions-table">
+                        <thead>
+                            <tr>
+                                <th>Position Name</th>
+                                <th>Max Vote</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positions-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="../js/admin.js"></script>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.sidebar-nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeSidebar();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
