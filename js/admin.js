@@ -611,18 +611,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadStudents() {
         try {
-            console.log('[LOAD] Starting loadStudents');
             const { data, error } = await supabaseAdmin
                 .from('students')
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            console.log('[LOAD] Fetch result:', { rowCount: data?.length, error });
-
             if (error) throw error;
 
             if (studentsList) {
-                console.log('[LOAD] Rendering', data.length, 'students');
                 studentsList.innerHTML = data.map(student => {
                     return `
                         <tr>
@@ -651,12 +647,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         </tr>
                     `;
                 }).join('');
-                console.log('[LOAD] Table HTML updated');
-            } else {
-                console.log('[LOAD] studentsList element not found!');
             }
         } catch (error) {
-            console.error('[LOAD] Error loading students:', error);
+            console.error('Error loading students:', error);
         }
     }
 
@@ -710,23 +703,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 
     window.deleteStudent = async function(id, name) {
-        console.log('[DELETE] Starting delete for student:', id, name);
         const confirmed = await showConfirmModal(`Are you sure you want to delete ${name}? This action cannot be undone.`, 'Delete Student', 'Delete', 'destructive');
         if (!confirmed) {
-            console.log('[DELETE] Delete cancelled by user');
             return;
         }
 
         try {
-            console.log('[DELETE] Confirmed. Attempting delete...');
             
             // Simple direct delete
             const { error, count } = await supabaseAdmin
                 .from('students')
                 .delete()
                 .eq('id', id);
-
-            console.log('[DELETE] Delete result:', { error, count });
 
             if (error) {
                 console.error('[DELETE] Error object:', error);
@@ -735,26 +723,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // VERIFICATION: Check if row still exists
-            console.log('[DELETE] Verifying deletion...');
             const { data: stillExists, error: checkError } = await supabaseAdmin
                 .from('students')
                 .select('id')
                 .eq('id', id)
                 .limit(1);
 
-            console.log('[DELETE] Verification check:', { stillExists: stillExists?.length, checkError });
-
             if (stillExists && stillExists.length > 0) {
-                console.error('[DELETE] VERIFICATION FAILED: Student still exists in database after delete!');
                 showAlertModal('Delete appeared to succeed but verification found the student still in the database. This indicates an RLS policy issue. Run fix-student-delete-permissions.sql in Supabase.', 'Delete Verification Failed');
                 return;
             }
-
-            console.log('[DELETE] Verification passed - student was actually deleted');
             showToast('Student deleted successfully!', 'success');
             loadStudents();
         } catch (error) {
-            console.error('[DELETE] Exception:', error);
             showAlertModal('Error deleting student: ' + (error?.message || String(error)), 'Error');
         }
     };
