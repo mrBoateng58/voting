@@ -89,7 +89,9 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, se
 DROP POLICY IF EXISTS "Allow anyone to view elections" ON elections;
 CREATE POLICY "Allow anyone to view elections" ON elections FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Allow admins to manage elections" ON elections;
-CREATE POLICY "Allow admins to manage elections" ON elections FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "Allow admins to manage elections" ON elections
+FOR ALL USING (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()))
+WITH CHECK (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 DROP POLICY IF EXISTS "Allow authenticated admins to manage elections" ON elections;
 CREATE POLICY "Allow authenticated admins to manage elections" ON elections
 FOR ALL USING (
@@ -103,7 +105,9 @@ FOR ALL USING (
 DROP POLICY IF EXISTS "Allow anyone to view election positions" ON election_positions;
 CREATE POLICY "Allow anyone to view election positions" ON election_positions FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Allow admins to manage election positions" ON election_positions;
-CREATE POLICY "Allow admins to manage election positions" ON election_positions FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "Allow admins to manage election positions" ON election_positions
+FOR ALL USING (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()))
+WITH CHECK (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 DROP POLICY IF EXISTS "Allow authenticated admins to manage election positions" ON election_positions;
 CREATE POLICY "Allow authenticated admins to manage election positions" ON election_positions
 FOR ALL USING (
@@ -116,10 +120,11 @@ FOR ALL USING (
 
 DROP POLICY IF EXISTS "Allow students to view own eligibility" ON election_eligible_students;
 CREATE POLICY "Allow students to view own eligibility" ON election_eligible_students
-FOR SELECT USING (auth.uid() = student_id OR auth.role() = 'service_role');
+FOR SELECT USING (auth.uid() = student_id OR EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 DROP POLICY IF EXISTS "Allow admins to manage election eligibility" ON election_eligible_students;
 CREATE POLICY "Allow admins to manage election eligibility" ON election_eligible_students
-FOR ALL USING (auth.role() = 'service_role');
+FOR ALL USING (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()))
+WITH CHECK (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 DROP POLICY IF EXISTS "Allow authenticated admins to manage election eligibility" ON election_eligible_students;
 CREATE POLICY "Allow authenticated admins to manage election eligibility" ON election_eligible_students
 FOR ALL USING (
@@ -134,7 +139,8 @@ DROP POLICY IF EXISTS "Allow anyone to view election candidates" ON election_can
 CREATE POLICY "Allow anyone to view election candidates" ON election_candidates FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Allow admins to manage election candidates" ON election_candidates;
 CREATE POLICY "Allow admins to manage election candidates" ON election_candidates
-FOR ALL USING (auth.role() = 'service_role');
+FOR ALL USING (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()))
+WITH CHECK (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 DROP POLICY IF EXISTS "Allow authenticated admins to manage election candidates" ON election_candidates;
 CREATE POLICY "Allow authenticated admins to manage election candidates" ON election_candidates
 FOR ALL USING (

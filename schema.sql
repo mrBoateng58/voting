@@ -78,7 +78,8 @@ CREATE POLICY "Allow students to see their own data" ON "students"
   FOR SELECT USING (auth.uid() = id);
 
 CREATE POLICY "Allow admins to manage all student data" ON "students"
-  FOR ALL USING (auth.role() = 'service_role');
+  FOR ALL USING (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()))
+  WITH CHECK (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 
 -- RLS Policies for admins table
 CREATE POLICY "Allow authenticated users to check if they are admin" ON "admins"
@@ -118,7 +119,8 @@ CREATE POLICY "Allow anyone to view election settings" ON "election_settings"
   FOR SELECT USING (true);
 
 CREATE POLICY "Allow admins to manage election settings" ON "election_settings"
-  FOR ALL USING (auth.role() = 'service_role');
+  FOR ALL USING (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()))
+  WITH CHECK (EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 
 -- Create a function to handle vote submission
 CREATE OR REPLACE FUNCTION submit_vote(

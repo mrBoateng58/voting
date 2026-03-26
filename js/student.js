@@ -9,6 +9,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const STUDENT_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
     let activeElectionId = null;
 
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function isPermissionDeniedError(error) {
         const msg = (error?.message || '').toLowerCase();
         return error?.status === 401 || error?.status === 403 || error?.code === '42501' || msg.includes('permission denied') || msg.includes('forbidden');
@@ -333,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (!isEligible) {
-                    voteForm.innerHTML = `<p class="subtitle">You are not eligible to vote in ${electionName || 'this election'}. Contact election admins for support.</p>`;
+                    voteForm.innerHTML = `<p class="subtitle">You are not eligible to vote in ${escapeHtml(electionName || 'this election')}. Contact election admins for support.</p>`;
                     updateSubmitAvailability(false);
                     return;
                 }

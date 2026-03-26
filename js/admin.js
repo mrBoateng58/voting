@@ -43,6 +43,15 @@ function validateCandidateInput(name, positionId) {
     return { valid: errors.length === 0, errors };
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
     if (/\/admin\/election\.html$/i.test(window.location.pathname)) {
@@ -231,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function getStatusBadgeHtml(status) {
-        const safe = (status || 'draft').toLowerCase();
+        const safe = String(status || 'draft').toLowerCase().replace(/[^a-z0-9_-]/g, '');
         return `<span class="status-badge ${safe}">${safe}</span>`;
     }
 
@@ -331,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (active?.name || active?.election_name) {
             const name = active.name || active.election_name;
             const end = active.end_time ? new Date(active.end_time).toLocaleString() : 'No end time';
-            banner.innerHTML = `<i class="fas fa-bolt"></i> Active Election: <strong>${name}</strong><span class="meta">Ends: ${end}</span>`;
+            banner.innerHTML = `<i class="fas fa-bolt"></i> Active Election: <strong>${escapeHtml(name)}</strong><span class="meta">Ends: ${escapeHtml(end)}</span>`;
         } else {
             banner.innerHTML = `<i class="fas fa-circle-info"></i> No active election right now.`;
         }
@@ -669,10 +678,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 studentsList.innerHTML = data.map(student => {
                     return `
                         <tr>
-                            <td>${student.name}</td>
-                            <td>${student.student_id}</td>
-                            <td>${student.email}</td>
-                            <td>${student.department || '-'}</td>
+                            <td>${escapeHtml(student.name)}</td>
+                            <td>${escapeHtml(student.student_id)}</td>
+                            <td>${escapeHtml(student.email)}</td>
+                            <td>${escapeHtml(student.department || '-')}</td>
                             <td>${student.has_voted ? 'Yes' : 'No'}</td>
                             <td>
                                 <div class="row-actions">
@@ -1167,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 list.innerHTML = data.map(p => {
                     return `
                         <tr>
-                            <td>${p.position_name}</td>
+                            <td>${escapeHtml(p.position_name)}</td>
                             <td>${p.max_vote}</td>
                             <td>
                                 <button onclick="window.location.href='edit-position.html?id=${encodeURIComponent(p.id)}'">Edit</button>
@@ -1179,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const select = document.getElementById('position');
             if (select) {
-                select.innerHTML = data.map(p => `<option value="${p.id}">${p.position_name}</option>`).join('');
+                select.innerHTML = data.map(p => `<option value="${p.id}">${escapeHtml(p.position_name)}</option>`).join('');
             }
         } catch (error) {
             console.error('Error loading positions:', error);
@@ -1449,7 +1458,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .order('position_name', { ascending: true });
 
             if (positionsError) throw positionsError;
-            positionInput.innerHTML = positions.map(p => `<option value="${p.id}">${p.position_name}</option>`).join('');
+            positionInput.innerHTML = positions.map(p => `<option value="${p.id}">${escapeHtml(p.position_name)}</option>`).join('');
 
             const { data: candidate, error: candidateError } = await supabaseAdmin
                 .from('candidates')
@@ -2058,7 +2067,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            select.innerHTML = elections.map(e => `<option value="${e.id}">${e.name} (${e.status})</option>`).join('');
+            select.innerHTML = elections.map(e => `<option value="${e.id}">${escapeHtml(e.name)} (${escapeHtml(e.status)})</option>`).join('');
 
             const savedElectionId = localStorage.getItem('admin-selected-election-id');
 
@@ -2292,14 +2301,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const sid = v.students?.student_id || '-';
                 const position = v.positions?.position_name || positionsById.get(Number(v.position_id)) || '-';
                 const candidate = v.candidates?.name || '-';
-                return `<tr><td>${when}</td><td>${studentName}</td><td>${sid}</td><td>${position}</td><td>${candidate}</td></tr>`;
+                return `<tr><td>${escapeHtml(when)}</td><td>${escapeHtml(studentName)}</td><td>${escapeHtml(sid)}</td><td>${escapeHtml(position)}</td><td>${escapeHtml(candidate)}</td></tr>`;
             });
             activityList.innerHTML = activityRows.length ? activityRows.join('') : '<tr><td colspan="5">No vote history yet for this election.</td></tr>';
         } catch (error) {
             console.error('Error loading selected election history:', error);
-            winnersList.innerHTML = `<tr><td colspan="3">${error.message}</td></tr>`;
-            candidateVotesList.innerHTML = `<tr><td colspan="4">${error.message}</td></tr>`;
-            activityList.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`;
+            winnersList.innerHTML = `<tr><td colspan="3">${escapeHtml(error.message)}</td></tr>`;
+            candidateVotesList.innerHTML = `<tr><td colspan="4">${escapeHtml(error.message)}</td></tr>`;
+            activityList.innerHTML = `<tr><td colspan="5">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
@@ -2517,10 +2526,10 @@ document.addEventListener('DOMContentLoaded', () => {
             list.innerHTML = elections.map(e => {
                 const start = e.start_time ? new Date(e.start_time).toLocaleString() : 'Not set';
                 const end = e.end_time ? new Date(e.end_time).toLocaleString() : 'Not set';
-                return `<tr><td>${e.name}</td><td>${getStatusBadgeHtml(e.status)}</td><td>${start}</td><td>${end}</td><td><button type="button" class="select-election-from-table" data-election-id="${e.id}">Select</button></td></tr>`;
+                return `<tr><td>${escapeHtml(e.name)}</td><td>${getStatusBadgeHtml(e.status)}</td><td>${escapeHtml(start)}</td><td>${escapeHtml(end)}</td><td><button type="button" class="select-election-from-table" data-election-id="${e.id}">Select</button></td></tr>`;
             }).join('');
         } catch (error) {
-            list.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`;
+            list.innerHTML = `<tr><td colspan="5">${escapeHtml(error.message)}</td></tr>`;
             summary.textContent = 'Active elections: -';
         }
     }
@@ -2644,7 +2653,7 @@ document.addEventListener('DOMContentLoaded', () => {
             applyElectionEditLock(selectedElectionStatus);
         } catch (error) {
             console.error('Error loading election candidates:', error);
-            list.innerHTML = `<tr><td colspan="4">${error.message}</td></tr>`;
+            list.innerHTML = `<tr><td colspan="4">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
@@ -2747,15 +2756,15 @@ document.addEventListener('DOMContentLoaded', () => {
             list.innerHTML = (students || []).map(s => `
                 <tr>
                     <td><input type="checkbox" class="eligibility-checkbox" data-student-id="${s.id}" ${eligibleSet.has(s.id) ? 'checked' : ''}></td>
-                    <td>${s.name}</td>
-                    <td>${s.student_id}</td>
-                    <td>${s.email}</td>
+                    <td>${escapeHtml(s.name)}</td>
+                    <td>${escapeHtml(s.student_id)}</td>
+                    <td>${escapeHtml(s.email)}</td>
                 </tr>
             `).join('');
             applyElectionEditLock(selectedElectionStatus);
         } catch (error) {
             console.error('Error loading eligibility students:', error);
-            list.innerHTML = `<tr><td colspan="4">${error.message}</td></tr>`;
+            list.innerHTML = `<tr><td colspan="4">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
@@ -2979,7 +2988,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderResultsCharts(container, results);
         } catch (error) {
             console.error('Error loading results:', error);
-            container.innerHTML = `<p class="subtitle">${error.message}</p>`;
+            container.innerHTML = `<p class="subtitle">${escapeHtml(error.message)}</p>`;
         }
     }
 
@@ -3079,13 +3088,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const rows = Object.keys(grouped).map(position => {
                 const entries = Object.entries(grouped[position]).sort((a, b) => b[1] - a[1]);
                 const [winnerName, winnerVotes] = entries[0] || ['-', 0];
-                return `<tr><td>${position}</td><td>${winnerName}</td><td>${winnerVotes}</td></tr>`;
+                return `<tr><td>${escapeHtml(position)}</td><td>${escapeHtml(winnerName)}</td><td>${winnerVotes}</td></tr>`;
             });
 
             list.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="3">No winners yet.</td></tr>';
         } catch (error) {
             console.error('Error loading winners:', error);
-            list.innerHTML = `<tr><td colspan="3">${error.message}</td></tr>`;
+            list.innerHTML = `<tr><td colspan="3">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
@@ -3103,10 +3112,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 .select('name,student_id,email')
                 .order('name', { ascending: true });
             if (error) {
-                list.innerHTML = `<tr><td colspan="3">${error.message}</td></tr>`;
+                list.innerHTML = `<tr><td colspan="3">${escapeHtml(error.message)}</td></tr>`;
                 return;
             }
-            list.innerHTML = (students || []).map(s => `<tr><td>${s.name}</td><td>${s.student_id}</td><td>${s.email}</td></tr>`).join('');
+            list.innerHTML = (students || []).map(s => `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.student_id)}</td><td>${escapeHtml(s.email)}</td></tr>`).join('');
             return;
         }
 
@@ -3123,13 +3132,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const rows = (data || []).map(row => {
                 const s = row.students;
-                return `<tr><td>${s?.name || '-'}</td><td>${s?.student_id || '-'}</td><td>${s?.email || '-'}</td></tr>`;
+                return `<tr><td>${escapeHtml(s?.name || '-')}</td><td>${escapeHtml(s?.student_id || '-')}</td><td>${escapeHtml(s?.email || '-')}</td></tr>`;
             });
 
             list.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="3">No eligible students assigned.</td></tr>';
         } catch (error) {
             console.error('Error loading eligible students for results:', error);
-            list.innerHTML = `<tr><td colspan="3">${error.message}</td></tr>`;
+            list.innerHTML = `<tr><td colspan="3">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 

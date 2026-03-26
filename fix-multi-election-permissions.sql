@@ -55,10 +55,6 @@ CREATE POLICY "Allow anyone to view elections" ON elections
 FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Allow service role to manage elections" ON elections;
-CREATE POLICY "Allow service role to manage elections" ON elections
-FOR ALL
-USING (auth.role() = 'service_role')
-WITH CHECK (auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Allow authenticated admins to manage elections" ON elections;
 CREATE POLICY "Allow authenticated admins to manage elections" ON elections
@@ -84,10 +80,6 @@ CREATE POLICY "Allow anyone to view election positions" ON election_positions
 FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Allow service role to manage election positions" ON election_positions;
-CREATE POLICY "Allow service role to manage election positions" ON election_positions
-FOR ALL
-USING (auth.role() = 'service_role')
-WITH CHECK (auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Allow authenticated admins to manage election positions" ON election_positions;
 CREATE POLICY "Allow authenticated admins to manage election positions" ON election_positions
@@ -110,13 +102,9 @@ WITH CHECK (
 -- Election eligibility policies
 DROP POLICY IF EXISTS "Allow students to view own eligibility" ON election_eligible_students;
 CREATE POLICY "Allow students to view own eligibility" ON election_eligible_students
-FOR SELECT USING (auth.uid() = student_id OR auth.role() = 'service_role');
+FOR SELECT USING (auth.uid() = student_id OR EXISTS (SELECT 1 FROM admins a WHERE a.user_id = auth.uid()));
 
 DROP POLICY IF EXISTS "Allow service role to manage election eligibility" ON election_eligible_students;
-CREATE POLICY "Allow service role to manage election eligibility" ON election_eligible_students
-FOR ALL
-USING (auth.role() = 'service_role')
-WITH CHECK (auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Allow authenticated admins to manage election eligibility" ON election_eligible_students;
 CREATE POLICY "Allow authenticated admins to manage election eligibility" ON election_eligible_students
@@ -142,10 +130,6 @@ CREATE POLICY "Allow anyone to view election candidates" ON election_candidates
 FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Allow service role to manage election candidates" ON election_candidates;
-CREATE POLICY "Allow service role to manage election candidates" ON election_candidates
-FOR ALL
-USING (auth.role() = 'service_role')
-WITH CHECK (auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Allow authenticated admins to manage election candidates" ON election_candidates;
 CREATE POLICY "Allow authenticated admins to manage election candidates" ON election_candidates
