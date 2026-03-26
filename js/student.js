@@ -389,8 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Update session storage
                 student.has_voted = true;
                 saveStudentSession(student);
-                setVoteMessage('Vote submitted successfully. You can return to dashboard or stay on this page.', 'success');
-                voteSuccessActions?.classList.remove('hidden');
+                // Redirect to thank you page
+                window.location.href = 'thank-you.html';
             } catch (error) {
                 console.error('Error submitting vote:', error);
                 const message = error?.message || 'Error submitting vote. Please try again.';

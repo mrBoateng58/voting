@@ -217,7 +217,73 @@ html[data-theme='dark'] .candidate-item:hover {
     gap: 0.75rem;
 }
 
+/* Thank You Page */
+.thank-you-section {
+    text-align: center;
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.thank-you-content {
+    margin-bottom: 2.5rem;
+}
+
+.thank-you-icon {
+    font-size: 4rem;
+    color: var(--success-600, #10b981);
+    margin-bottom: 1.5rem;
+    animation: scaleIn 0.6s ease-out;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.thank-you-section h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--ink-900);
+    margin-bottom: 0.5rem;
+}
+
+.thank-you-message {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--ink-700);
+    margin-bottom: 0.5rem;
+}
+
+.thank-you-subtitle {
+    font-size: 0.95rem;
+    color: var(--ink-600);
+}
+
+.thank-you-actions {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
 @media (max-width: 768px) {
+    .thank-you-section h1 {
+        font-size: 1.8rem;
+    }
+
+    .thank-you-icon {
+        font-size: 3rem;
+    }
+}
     .student-shell {
         padding: 1rem 0;
     }
@@ -268,6 +334,15 @@ html[data-theme='dark'] .candidate-item:hover {
     }
 
     .vote-submit-wrap button {
+        width: 100%;
+    }
+
+    .thank-you-actions {
+        flex-direction: column;
+    }
+
+    .thank-you-actions .btn,
+    .thank-you-actions .btn-danger {
         width: 100%;
     }
 }
