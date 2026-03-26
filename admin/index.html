@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+</head>
+<body>
+    <script>
+        // Check if admin is already authenticated
+        const isAuthenticated = localStorage.getItem('admin-authenticated') === 'true';
+        
+        if (isAuthenticated) {
+            // Redirect to dashboard if already logged in
+            window.location.href = 'dashboard.html';
+        } else {
+            // Redirect to login if not authenticated
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>
