@@ -703,47 +703,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 
     window.deleteStudent = async function(id, name) {
+        console.log('[DELETE] Starting delete for student:', id, name);
         const confirmed = await showConfirmModal(`Are you sure you want to delete ${name}? This action cannot be undone.`, 'Delete Student', 'Delete', 'destructive');
         if (!confirmed) {
+            console.log('[DELETE] Delete cancelled by user');
             return;
         }
 
         try {
-            // Delete dependent rows first to support databases that were migrated
-            // without CASCADE constraints on older tables.
-            const { error: eligibilityDeleteError } = await supabaseAdmin
-                .from('election_eligible_students')
-                .delete()
-                .eq('student_id', id);
-            if (eligibilityDeleteError && !isPermissionDeniedError(eligibilityDeleteError)) {
-                throw eligibilityDeleteError;
-            }
-
-            const { error: votesDeleteError } = await supabaseAdmin
-                .from('votes')
-                .delete()
-                .eq('student_id', id);
-            if (votesDeleteError && !isPermissionDeniedError(votesDeleteError)) {
-                throw votesDeleteError;
-            }
-
+            console.log('[DELETE] Confirmed. Attempting delete...');
+            
+            // Simple direct delete - let database CASCADE handle dependencies
             const { error } = await supabaseAdmin
                 .from('students')
                 .delete()
                 .eq('id', id);
 
+            console.log('[DELETE] Delete result:', { error });
+
             if (error) {
-                if (isPermissionDeniedError(error)) {
-                    throw new Error('Delete blocked by database policy. Run security-hardening.sql and ensure your admin account exists in the admins table.');
-                }
-                throw error;
+                console.error('[DELETE] Error object:', error);
+                showAlertModal(`Error deleting student: ${error.message || JSON.stringify(error)}`, 'Delete Failed');
+                return;
             }
 
+            console.log('[DELETE] Delete succeeded, refreshing list');
             showToast('Student deleted successfully!', 'success');
             loadStudents();
         } catch (error) {
-            console.error('Error deleting student:', error);
-            showAlertModal('Error deleting student: ' + error.message, 'Error');
+            console.error('[DELETE] Exception:', error);
+            showAlertModal('Error deleting student: ' + (error?.message || String(error)), 'Error');
         }
     };
 
