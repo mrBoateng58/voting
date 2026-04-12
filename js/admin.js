@@ -793,7 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .limit(1);
 
             if (stillExists && stillExists.length > 0) {
-                showAlertModal('Delete appeared to succeed but verification found the student still in the database. This indicates an RLS policy issue. Run fix-student-delete-permissions.sql in Supabase.', 'Delete Verification Failed');
+                showAlertModal('Delete appeared to succeed but verification found the student still in the database. This indicates an RLS policy issue. Run secure-auth-schema.sql in Supabase.', 'Delete Verification Failed');
                 return;
             }
             showToast('Student deleted successfully!', 'success');
@@ -2500,7 +2500,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Election migrated successfully.', 'success');
         } catch (error) {
             console.error('Error migrating legacy election:', error);
-            showAlertModal('Could not migrate this election: ' + error.message + '\nRun fix-multi-election-permissions.sql in Supabase SQL Editor, then try again.', 'Migration Error');
+            showAlertModal('Could not migrate this election: ' + error.message + '\nRun secure-auth-schema.sql in Supabase SQL Editor, then try again.', 'Migration Error');
         }
     }
 
@@ -2947,7 +2947,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error('Error loading admin tools:', error);
                 if (isPermissionDeniedError(error)) {
-                    showToast('Admin tools blocked by database permissions. Run security-hardening.sql.', 'error');
+                    showToast('Admin tools blocked by database permissions. Run secure-auth-schema.sql.', 'error');
                 }
             }
         };
@@ -3230,7 +3230,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             if (isPermissionDeniedError(error)) {
-                showToast('Dashboard data blocked by database permissions. Run security-hardening.sql.', 'error');
+                showToast('Dashboard data blocked by database permissions. Run secure-auth-schema.sql.', 'error');
                 document.getElementById('election-status-display').textContent = 'Permission denied';
                 return;
             }
@@ -3296,7 +3296,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isPermissionDeniedError(error)) {
                 const recentVotesTable = document.getElementById('recent-votes');
                 if (recentVotesTable) {
-                    recentVotesTable.innerHTML = '<tr><td colspan="4">Permission denied. Run security-hardening.sql in Supabase.</td></tr>';
+                    recentVotesTable.innerHTML = '<tr><td colspan="4">Permission denied. Run secure-auth-schema.sql in Supabase.</td></tr>';
                 }
                 showToast('Recent activity blocked by database permissions.', 'error');
                 return;

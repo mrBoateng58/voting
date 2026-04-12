@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
     const loginForm = document.getElementById('login-form');
     const errorMessage = document.getElementById('error-message');
+    const PENDING_STUDENT_LOGIN_KEY = 'pending-student-login';
 
     function isPermissionDeniedError(error) {
         const message = (error?.message || '').toLowerCase();
@@ -23,6 +24,35 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('student-authenticated', payload);
         } catch {
             // Ignore local storage failures and proceed with in-memory navigation.
+        }
+    }
+
+    function savePendingStudentLogin(email, studentId) {
+        try {
+            sessionStorage.setItem(PENDING_STUDENT_LOGIN_KEY, JSON.stringify({
+                email: String(email || '').toLowerCase(),
+                studentId: String(studentId || ''),
+                createdAt: Date.now()
+            }));
+        } catch {
+            // Ignore storage failures and continue OTP flow.
+        }
+    }
+
+    function readPendingStudentLogin() {
+        try {
+            const raw = sessionStorage.getItem(PENDING_STUDENT_LOGIN_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    function clearPendingStudentLogin() {
+        try {
+            sessionStorage.removeItem(PENDING_STUDENT_LOGIN_KEY);
+        } catch {
+            // Ignore storage cleanup failures.
         }
     }
 
@@ -119,6 +149,23 @@ document.addEventListener('DOMContentLoaded', () => {
     hydrateStudentFromAuth().then(async (student) => {
         if (!student) return;
 
+        const pendingLogin = readPendingStudentLogin();
+        if (pendingLogin) {
+            const pendingEmail = String(pendingLogin.email || '').toLowerCase();
+            const pendingStudentId = String(pendingLogin.studentId || '');
+            const studentEmail = String(student.email || '').toLowerCase();
+            const studentStudentId = String(student.student_id || '');
+
+            if (pendingEmail !== studentEmail || pendingStudentId !== studentStudentId) {
+                clearPendingStudentLogin();
+                await supabase.auth.signOut();
+                errorMessage.textContent = 'Student ID verification failed for this email. Please try again.';
+                return;
+            }
+
+            clearPendingStudentLogin();
+        }
+
         saveStudentSnapshot(student);
         const destination = await resolvePostLoginRoute(student.id);
         window.location.href = destination;
@@ -130,10 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMessage.textContent = '';
 
             const email = document.getElementById('email').value.trim().toLowerCase();
-            const password = document.getElementById('password').value;
+            const studentId = document.getElementById('student-id').value.trim();
 
             try {
-                console.log('Attempting student login with email:', email);
+                console.log('Attempting OTP login with email and student ID:', email, studentId);
 
                 // Clear stale session first to avoid identity confusion with previous logins.
                 try {
@@ -142,49 +189,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.warn('Continuing login despite sign-out issue:', signOutError);
                 }
 
-                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-                    email,
-                    password
+                const { data: identityOk, error: identityError } = await supabase.rpc('verify_student_login_identity', {
+                    p_email: email,
+                    p_student_id: studentId
                 });
 
-                if (authError || !authData?.user?.email) {
-                    errorMessage.textContent = 'Login failed. Check your email/password and try again.';
-                    return;
-                }
-
-                const { data, error } = await supabase
-                    .from('students')
-                    .select('id,name,email,student_id,has_voted')
-                    .eq('email', authData.user.email)
-                    .maybeSingle();
-
-                if (error || !data) {
-                    if (error && isPermissionDeniedError(error)) {
-                        errorMessage.textContent = 'Login is blocked by database permissions. Please contact admin to run the SQL fix scripts.';
+                if (identityError) {
+                    if (isPermissionDeniedError(identityError)) {
+                        errorMessage.textContent = 'Login is blocked by database permissions. Please contact admin to run secure-auth-schema.sql.';
                         return;
                     }
-                    await supabase.auth.signOut();
-                    errorMessage.textContent = 'No student profile is mapped to this account. Please contact admin.';
+                    throw identityError;
+                }
+
+                if (!identityOk) {
+                    errorMessage.textContent = 'Login failed. Check your email/student ID and try again.';
                     return;
                 }
 
-                console.log('Student found:', data);
+                savePendingStudentLogin(email, studentId);
 
-                const sessionStudent = {
-                    id: data.id,
-                    name: data.name,
-                    email: data.email,
-                    student_id: data.student_id,
-                    has_voted: !!data.has_voted,
-                    sessionIssuedAt: Date.now()
-                };
+                const { error: otpError } = await supabase.auth.signInWithOtp({
+                    email,
+                    options: {
+                        shouldCreateUser: true,
+                        emailRedirectTo: `${window.location.origin}/index.html`
+                    }
+                });
 
-                saveStudentSnapshot(sessionStudent);
+                if (otpError) {
+                    clearPendingStudentLogin();
+                    errorMessage.textContent = 'Could not send OTP email. Please try again.';
+                    return;
+                }
 
-                const destination = await resolvePostLoginRoute(data.id);
-
-                window.location.href = destination;
-
+                errorMessage.textContent = 'OTP login link sent. Check your email, open the link, and you will be signed in automatically.';
+                errorMessage.style.color = '#166534';
+                loginForm.reset();
             } catch (err) {
                 console.error('An unexpected error occurred:', err);
                 errorMessage.textContent = 'An unexpected error occurred. Please try again.';

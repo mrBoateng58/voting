@@ -132,6 +132,27 @@ GRANT INSERT, UPDATE, DELETE ON public.students, public.positions, public.candid
 GRANT INSERT ON public.votes TO authenticated;
 REVOKE ALL ON public.students FROM anon;
 
+-- Student login identity verifier for OTP flow (email + student_id pre-check)
+CREATE OR REPLACE FUNCTION public.verify_student_login_identity(
+  p_email text,
+  p_student_id text
+)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.students s
+    WHERE lower(s.email) = lower(trim(p_email))
+      AND s.student_id = trim(p_student_id)
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.verify_student_login_identity(text, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.verify_student_login_identity(text, text) TO anon, authenticated;
+
 -- Enable RLS
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;

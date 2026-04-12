@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (insertError) {
                     if (isPermissionDeniedError(insertError)) {
-                        throw new Error('Vote submission is blocked by database permissions. Ask admin to run fix-student-vote-permissions.sql.');
+                        throw new Error('Vote submission is blocked by database permissions. Ask admin to run secure-auth-schema.sql.');
                     }
                     throw insertError;
                 }
