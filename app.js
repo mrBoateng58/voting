@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const errorMessage = document.getElementById('error-message');
     const PENDING_STUDENT_LOGIN_KEY = 'pending-student-login';
+    const APP_INDEX_URL = new URL('index.html', window.location.href).href;
 
     function isPermissionDeniedError(error) {
         const message = (error?.message || '').toLowerCase();
@@ -54,6 +55,24 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch {
             // Ignore storage cleanup failures.
         }
+    }
+
+    async function handleAuthCallback() {
+        const code = new URLSearchParams(window.location.search).get('code');
+        if (!code) {
+            return false;
+        }
+
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+            console.error('Failed to exchange OTP code for session:', error);
+            errorMessage.textContent = 'Could not complete OTP sign-in. Please request a new link.';
+            clearPendingStudentLogin();
+            return false;
+        }
+
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return true;
     }
 
     async function resolvePostLoginRoute(studentId) {
@@ -145,31 +164,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // If a student is already authenticated, skip showing the login form again.
-    hydrateStudentFromAuth().then(async (student) => {
-        if (!student) return;
+    (async () => {
+        await handleAuthCallback();
 
-        const pendingLogin = readPendingStudentLogin();
-        if (pendingLogin) {
-            const pendingEmail = String(pendingLogin.email || '').toLowerCase();
-            const pendingStudentId = String(pendingLogin.studentId || '');
-            const studentEmail = String(student.email || '').toLowerCase();
-            const studentStudentId = String(student.student_id || '');
+        // If a student is already authenticated, skip showing the login form again.
+        hydrateStudentFromAuth().then(async (student) => {
+            if (!student) return;
 
-            if (pendingEmail !== studentEmail || pendingStudentId !== studentStudentId) {
+            const pendingLogin = readPendingStudentLogin();
+            if (pendingLogin) {
+                const pendingEmail = String(pendingLogin.email || '').toLowerCase();
+                const pendingStudentId = String(pendingLogin.studentId || '');
+                const studentEmail = String(student.email || '').toLowerCase();
+                const studentStudentId = String(student.student_id || '');
+
+                if (pendingEmail !== studentEmail || pendingStudentId !== studentStudentId) {
+                    clearPendingStudentLogin();
+                    await supabase.auth.signOut();
+                    errorMessage.textContent = 'Student ID verification failed for this email. Please try again.';
+                    return;
+                }
+
                 clearPendingStudentLogin();
-                await supabase.auth.signOut();
-                errorMessage.textContent = 'Student ID verification failed for this email. Please try again.';
-                return;
             }
 
-            clearPendingStudentLogin();
-        }
-
-        saveStudentSnapshot(student);
-        const destination = await resolvePostLoginRoute(student.id);
-        window.location.href = destination;
-    });
+            saveStudentSnapshot(student);
+            const destination = await resolvePostLoginRoute(student.id);
+            window.location.href = destination;
+        });
+    })();
 
     if (loginForm) {
         loginForm.addEventListener('submit', async (event) => {
@@ -213,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     email,
                     options: {
                         shouldCreateUser: true,
-                        emailRedirectTo: `${window.location.origin}/index.html`
+                        emailRedirectTo: APP_INDEX_URL
                     }
                 });
 
