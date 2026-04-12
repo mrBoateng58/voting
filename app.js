@@ -47,9 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 .eq('student_id', studentId)
                 .maybeSingle();
 
-            // If eligibility table cannot be read due policy, avoid false-negative routing.
+            // If eligibility cannot be verified, fail closed to dashboard.
             if (eligibilityError && isPermissionDeniedError(eligibilityError)) {
-                return 'student/vote.html';
+                return 'student/dashboard.html';
             }
 
             if (!eligibility) {
