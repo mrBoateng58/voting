@@ -19,15 +19,15 @@
                 <img src="images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg" alt="Regent University">
             </div>
             <h2><i class="fa-solid fa-user-graduate"></i> Student Login</h2>
-            <p class="login-subtitle">Sign in with your school email and student ID to access voting.</p>
+            <p class="login-subtitle">Sign in with your school email and password to access voting.</p>
             <form id="login-form" method="post" action="javascript:void(0);">
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required>
+                    <input type="email" id="email" name="email" autocomplete="username" required>
                 </div>
                 <div class="form-group">
-                    <label for="student-id">Student ID</label>
-                    <input type="text" id="student-id" name="student-id" autocomplete="off" required>
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="current-password" required>
                 </div>
                 <button type="submit"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
             </form>

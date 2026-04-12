@@ -130,35 +130,41 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMessage.textContent = '';
 
             const email = document.getElementById('email').value.trim().toLowerCase();
-            const studentId = document.getElementById('student-id').value.trim();
+            const password = document.getElementById('password').value;
 
             try {
-                console.log('Attempting student login with email and student ID:', email, studentId);
+                console.log('Attempting student login with email:', email);
 
-                // Clear any stale Supabase auth session (e.g., prior admin login) for student ID mode.
+                // Clear stale session first to avoid identity confusion with previous logins.
                 try {
                     await supabase.auth.signOut();
                 } catch (signOutError) {
-                    console.warn('Proceeding with student login despite auth sign-out issue:', signOutError);
+                    console.warn('Continuing login despite sign-out issue:', signOutError);
                 }
 
-                // Primary student login path: email + student ID lookup.
-                const legacyResult = await supabase
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (authError || !authData?.user?.email) {
+                    errorMessage.textContent = 'Login failed. Check your email/password and try again.';
+                    return;
+                }
+
+                const { data, error } = await supabase
                     .from('students')
                     .select('id,name,email,student_id,has_voted')
-                    .eq('email', email)
-                    .eq('student_id', studentId)
+                    .eq('email', authData.user.email)
                     .maybeSingle();
-
-                const data = legacyResult.data;
-                const error = legacyResult.error;
 
                 if (error || !data) {
                     if (error && isPermissionDeniedError(error)) {
                         errorMessage.textContent = 'Login is blocked by database permissions. Please contact admin to run the SQL fix scripts.';
                         return;
                     }
-                    errorMessage.textContent = 'Login failed. Check your email/student ID and try again.';
+                    await supabase.auth.signOut();
+                    errorMessage.textContent = 'No student profile is mapped to this account. Please contact admin.';
                     return;
                 }
 
