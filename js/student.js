@@ -135,12 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const { data, error } = await query.maybeSingle();
 
             if (error || !data) {
-                // If backend policies temporarily block revalidation, keep valid local session briefly.
-                if (student?.id && student?.student_id && (Date.now() - Number(student.sessionIssuedAt || 0) <= STUDENT_SESSION_MAX_AGE_MS)) {
-                    if (error && isPermissionDeniedError(error)) {
-                        return student;
-                    }
-                }
                 clearStudentSession();
                 return null;
             }
@@ -159,10 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return refreshedStudent;
         } catch (error) {
             console.error('Failed to validate student session:', error);
-            const fallbackStudent = readStudentSession();
-            if (fallbackStudent?.id && fallbackStudent?.student_id && (Date.now() - Number(fallbackStudent.sessionIssuedAt || 0) <= STUDENT_SESSION_MAX_AGE_MS)) {
-                return fallbackStudent;
-            }
             clearStudentSession();
             return null;
         }
@@ -452,8 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (eligibilityError) {
                 if (isPermissionDeniedError(eligibilityError)) {
                     hasPolicyWarning = true;
-                    // Graceful fallback for older/public-login deployments.
-                    isEligible = true;
+                    throw eligibilityError;
                 } else {
                     throw eligibilityError;
                 }
@@ -483,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (votesError) {
                 if (isPermissionDeniedError(votesError)) {
                     hasPolicyWarning = true;
-                    alreadyVoted = !!student?.has_voted;
+                    throw votesError;
                 } else {
                     throw votesError;
                 }

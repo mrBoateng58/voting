@@ -1380,14 +1380,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (list) {
                 list.innerHTML = data.map(c => {
                     const positionName = c.positions?.position_name || 'Unknown Position';
-                    const photoDisplay = c.photo ? `<img src="${c.photo}" alt="${c.name}" width="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">` : 'No photo';
+                    const safeName = escapeHtml(c.name);
+                    const safePositionName = escapeHtml(positionName);
+                    const safePhoto = escapeHtml(c.photo || '');
+                    const photoDisplay = c.photo ? `<img src="${safePhoto}" alt="${safeName}" width="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">` : 'No photo';
                     const desc = c.description || '-';
+                    const safeDesc = escapeHtml(desc.substring(0, 50));
                     return `
                         <tr>
-                            <td>${c.name}</td>
-                            <td>${positionName}</td>
+                            <td>${safeName}</td>
+                            <td>${safePositionName}</td>
                             <td>${photoDisplay}</td>
-                            <td>${desc.substring(0, 50)}${desc.length > 50 ? '...' : ''}</td>
+                            <td>${safeDesc}${desc.length > 50 ? '...' : ''}</td>
                             <td>
                                 <button onclick="window.location.href='edit-candidate.html?id=${encodeURIComponent(c.id)}'">Edit</button>
                                 <button onclick="window.deleteCandidate('${c.id}', '${(c.name || '').replace(/'/g, "\\'")}')" class="btn-danger">Delete</button>
@@ -2283,7 +2287,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const winnerRows = Object.keys(voteCountsByPosition).map(position => {
                 const entries = Object.entries(voteCountsByPosition[position]).sort((a, b) => b[1] - a[1]);
                 const [winnerName, winnerVotes] = entries[0] || ['-', 0];
-                return `<tr><td>${position}</td><td>${winnerName}</td><td>${winnerVotes}</td></tr>`;
+                return `<tr><td>${escapeHtml(position)}</td><td>${escapeHtml(winnerName)}</td><td>${winnerVotes}</td></tr>`;
             });
             winnersList.innerHTML = winnerRows.length ? winnerRows.join('') : '<tr><td colspan="3">No winners yet.</td></tr>';
 
@@ -2291,7 +2295,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const votesCount = voteCountsByCandidate.get(Number(candidate.id)) || 0;
                 const status = votesCount > 0 ? 'Voted For' : 'Not Voted For';
                 const positionName = positionsById.get(Number(candidate.position_id)) || 'Unknown Position';
-                return `<tr><td>${candidate.name}</td><td>${positionName}</td><td>${votesCount}</td><td>${status}</td></tr>`;
+                return `<tr><td>${escapeHtml(candidate.name)}</td><td>${escapeHtml(positionName)}</td><td>${votesCount}</td><td>${escapeHtml(status)}</td></tr>`;
             });
             candidateVotesList.innerHTML = candidateRows.length ? candidateRows.join('') : '<tr><td colspan="4">No candidates mapped to this election.</td></tr>';
 
@@ -2641,12 +2645,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const positionName = c.positions?.position_name || 'Unknown Position';
                 const desc = c.description || '-';
                 const checked = selectedSet.has(String(c.id)) ? 'checked' : '';
+                const safeName = escapeHtml(c.name);
+                const safePositionName = escapeHtml(positionName);
+                const safeDesc = escapeHtml(desc.substring(0, 80));
                 return `
                     <tr>
                         <td><input type="checkbox" class="election-candidate-checkbox" data-candidate-id="${c.id}" data-position-id="${c.position_id}" ${checked}></td>
-                        <td>${c.name}</td>
-                        <td>${positionName}</td>
-                        <td>${desc.substring(0, 80)}${desc.length > 80 ? '...' : ''}</td>
+                        <td>${safeName}</td>
+                        <td>${safePositionName}</td>
+                        <td>${safeDesc}${desc.length > 80 ? '...' : ''}</td>
                     </tr>
                 `;
             }).join('');
@@ -2857,9 +2864,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         select.addEventListener('change', async () => {
+            const previousElectionId = selectedElectionId;
             selectedElectionId = select.value || null;
-            // Unsubscribe from previous election
-            RealtimeManager.unsubscribe(`election-votes-${selectedElectionId}`);
+            // Unsubscribe from previous election before subscribing to the new one.
+            if (previousElectionId) {
+                RealtimeManager.unsubscribe(`election-votes-${previousElectionId}`);
+            }
             pendingVoteCount = 0;
             if (refreshTimeout) clearTimeout(refreshTimeout);
             await loadResultsByElection();
@@ -3274,10 +3284,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     return `
                         <tr>
-                            <td>${voteTime}</td>
-                            <td>${studentName}</td>
-                            <td>${candidateName}</td>
-                            <td>${positionName}</td>
+                            <td>${escapeHtml(voteTime)}</td>
+                            <td>${escapeHtml(studentName)}</td>
+                            <td>${escapeHtml(candidateName)}</td>
+                            <td>${escapeHtml(positionName)}</td>
                         </tr>
                     `;
                 }).join('');
