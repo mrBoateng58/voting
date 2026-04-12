@@ -130,6 +130,7 @@ GRANT SELECT ON public.positions, public.candidates, public.elections, public.el
 GRANT SELECT ON public.students, public.votes, public.election_eligible_students, public.admins, public.election_settings TO authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.students, public.positions, public.candidates, public.elections, public.election_positions, public.election_candidates, public.election_eligible_students TO authenticated;
 GRANT INSERT ON public.votes TO authenticated;
+REVOKE ALL ON public.students FROM anon;
 
 -- Enable RLS
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
@@ -145,6 +146,8 @@ ALTER TABLE public.election_eligible_students ENABLE ROW LEVEL SECURITY;
 
 -- Drop old or conflicting policies
 DROP POLICY IF EXISTS "Allow anonymous to view students for login" ON public.students;
+DROP POLICY IF EXISTS "students_anon_select" ON public.students;
+DROP POLICY IF EXISTS "students_service_all" ON public.students;
 DROP POLICY IF EXISTS "Allow students to see their own data" ON public.students;
 DROP POLICY IF EXISTS "Students can read own profile by email" ON public.students;
 DROP POLICY IF EXISTS "Students can update own voted flag" ON public.students;
