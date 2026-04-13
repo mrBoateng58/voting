@@ -11,9 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const otpCodeInput = document.getElementById('otp-code');
     const PENDING_STUDENT_LOGIN_KEY = 'pending-student-login';
     const OTP_COOLDOWN_KEY = 'student-otp-cooldown-until';
+    const OTP_RATE_LIMIT_STRIKES_KEY = 'student-otp-rate-limit-strikes';
     const OTP_PENDING_MAX_AGE_MS = 10 * 60 * 1000;
     const OTP_DEFAULT_COOLDOWN_SECONDS = 8;
     const OTP_RATE_LIMIT_COOLDOWN_SECONDS = 60;
+    const OTP_RATE_LIMIT_MAX_COOLDOWN_SECONDS = 300;
     let isSendingOtp = false;
     let isAwaitingOtpCode = false;
     let otpCooldownTimer = null;
@@ -24,6 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatAuthError(error) {
+        return formatAuthErrorWithCooldown(error, null);
+    }
+
+    function formatAuthErrorWithCooldown(error, forcedCooldownSeconds) {
         const code = String(error?.code || '').toLowerCase();
         const msg = String(error?.message || '').toLowerCase();
         const details = String(error?.details || '').toLowerCase();
@@ -37,9 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (String(error?.status || '') === '429' || code === '429' || msg.includes('too many requests')) {
-            const source = `${error?.message || ''} ${error?.details || ''}`;
-            const waitMatch = source.match(/after\s+(\d+)\s*seconds?/i);
-            const seconds = Math.max(Number(waitMatch?.[1] || 0), OTP_RATE_LIMIT_COOLDOWN_SECONDS);
+            const seconds = Math.max(Number(forcedCooldownSeconds || 0), OTP_RATE_LIMIT_COOLDOWN_SECONDS);
             return `Too many OTP requests. Please wait ${seconds}s and try again.`;
         }
 
@@ -52,6 +56,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return error?.message || 'An unexpected error occurred. Please try again.';
+    }
+
+    function isOtpRateLimitError(error) {
+        const code = String(error?.code || '').toLowerCase();
+        const msg = String(error?.message || '').toLowerCase();
+        const details = String(error?.details || '').toLowerCase();
+        return String(error?.status || '') === '429'
+            || code === '429'
+            || msg.includes('too many requests')
+            || (msg.includes('email') && msg.includes('rate'))
+            || details.includes('rate');
+    }
+
+    function parseServerWaitSeconds(error) {
+        const source = `${error?.message || ''} ${error?.details || ''}`;
+        const waitMatch = source.match(/after\s+(\d+)\s*seconds?/i);
+        return Number(waitMatch?.[1] || 0);
+    }
+
+    function getRateLimitStrikes() {
+        try {
+            return Number(localStorage.getItem(OTP_RATE_LIMIT_STRIKES_KEY) || '0');
+        } catch {
+            return 0;
+        }
+    }
+
+    function setRateLimitStrikes(value) {
+        try {
+            localStorage.setItem(OTP_RATE_LIMIT_STRIKES_KEY, String(Math.max(0, Number(value || 0))));
+        } catch {
+            // Ignore storage failures.
+        }
+    }
+
+    function clearRateLimitStrikes() {
+        setRateLimitStrikes(0);
+    }
+
+    function getEscalatedRateLimitSeconds(serverWaitSeconds = 0) {
+        const nextStrike = getRateLimitStrikes() + 1;
+        setRateLimitStrikes(nextStrike);
+
+        const escalated = Math.min(
+            OTP_RATE_LIMIT_COOLDOWN_SECONDS * Math.pow(2, Math.max(0, nextStrike - 1)),
+            OTP_RATE_LIMIT_MAX_COOLDOWN_SECONDS
+        );
+
+        return Math.max(Number(serverWaitSeconds || 0), Math.floor(escalated), OTP_RATE_LIMIT_COOLDOWN_SECONDS);
     }
 
     function setSubmitState(disabled, label) {
@@ -141,12 +194,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function savePendingStudentLogin(email, studentId) {
+        const payload = JSON.stringify({
+            email: String(email || '').toLowerCase(),
+            studentId: String(studentId || ''),
+            createdAt: Date.now()
+        });
         try {
-            sessionStorage.setItem(PENDING_STUDENT_LOGIN_KEY, JSON.stringify({
-                email: String(email || '').toLowerCase(),
-                studentId: String(studentId || ''),
-                createdAt: Date.now()
-            }));
+            sessionStorage.setItem(PENDING_STUDENT_LOGIN_KEY, payload);
+        } catch {
+            // Ignore session storage failures and continue OTP flow.
+        }
+        try {
+            localStorage.setItem(PENDING_STUDENT_LOGIN_KEY, payload);
         } catch {
             // Ignore storage failures and continue OTP flow.
         }
@@ -154,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function readPendingStudentLogin() {
         try {
-            const raw = sessionStorage.getItem(PENDING_STUDENT_LOGIN_KEY);
+            const raw = sessionStorage.getItem(PENDING_STUDENT_LOGIN_KEY) || localStorage.getItem(PENDING_STUDENT_LOGIN_KEY);
             const parsed = raw ? JSON.parse(raw) : null;
             if (!parsed?.createdAt) return parsed;
             if (Date.now() - Number(parsed.createdAt) > OTP_PENDING_MAX_AGE_MS) {
@@ -170,6 +229,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearPendingStudentLogin() {
         try {
             sessionStorage.removeItem(PENDING_STUDENT_LOGIN_KEY);
+        } catch {
+            // Ignore storage cleanup failures.
+        }
+        try {
+            localStorage.removeItem(PENDING_STUDENT_LOGIN_KEY);
         } catch {
             // Ignore storage cleanup failures.
         }
@@ -390,22 +454,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (otpError) {
                     clearPendingStudentLogin();
-                    const source = `${otpError?.message || ''} ${otpError?.details || ''}`;
-                    const waitMatch = source.match(/after\s+(\d+)\s*seconds?/i);
-                    const isRateLimited = String(otpError?.status || '') === '429'
-                        || String(otpError?.code || '') === '429'
-                        || /too many requests/i.test(source)
-                        || /email.*rate/i.test(source);
-                    const waitSeconds = Number(waitMatch?.[1] || 0);
-                    if (isRateLimited) {
-                        setOtpCooldown(Math.max(waitSeconds, OTP_RATE_LIMIT_COOLDOWN_SECONDS));
-                    } else if (waitSeconds > 0) {
-                        setOtpCooldown(waitSeconds);
+                    const serverWaitSeconds = parseServerWaitSeconds(otpError);
+                    if (isOtpRateLimitError(otpError)) {
+                        const enforcedSeconds = getEscalatedRateLimitSeconds(serverWaitSeconds);
+                        setOtpCooldown(enforcedSeconds);
+                        // Allow user to enter an already-sent code instead of forcing another send.
+                        if (readPendingStudentLogin()) {
+                            setOtpMode(true);
+                        }
+                        errorMessage.textContent = formatAuthErrorWithCooldown(otpError, enforcedSeconds);
+                        return;
+                    } else if (serverWaitSeconds > 0) {
+                        setOtpCooldown(serverWaitSeconds);
                     }
                     errorMessage.textContent = formatAuthError(otpError);
                     return;
                 }
 
+                clearRateLimitStrikes();
                 setOtpCooldown(OTP_DEFAULT_COOLDOWN_SECONDS);
                 setOtpMode(true);
                 errorMessage.textContent = 'OTP code sent. Enter the code from your email to continue.';
