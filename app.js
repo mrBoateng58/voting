@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const OTP_COOLDOWN_KEY = 'student-otp-cooldown-until';
     const OTP_PENDING_MAX_AGE_MS = 10 * 60 * 1000;
     const OTP_DEFAULT_COOLDOWN_SECONDS = 8;
+    const OTP_RATE_LIMIT_COOLDOWN_SECONDS = 60;
     let isSendingOtp = false;
     let isAwaitingOtpCode = false;
     let otpCooldownTimer = null;
@@ -35,15 +36,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return 'Auth redirect URL is not allowed in Supabase settings. Add your deployed URL and try again.';
         }
 
-        if (msg.includes('email') && msg.includes('rate')) {
-            return 'Too many OTP requests. Please wait a minute and try again.';
-        }
-
         if (String(error?.status || '') === '429' || code === '429' || msg.includes('too many requests')) {
             const source = `${error?.message || ''} ${error?.details || ''}`;
             const waitMatch = source.match(/after\s+(\d+)\s*seconds?/i);
-            const seconds = Number(waitMatch?.[1] || OTP_DEFAULT_COOLDOWN_SECONDS);
+            const seconds = Math.max(Number(waitMatch?.[1] || 0), OTP_RATE_LIMIT_COOLDOWN_SECONDS);
             return `Too many OTP requests. Please wait ${seconds}s and try again.`;
+        }
+
+        if (msg.includes('email') && msg.includes('rate')) {
+            return `Too many OTP requests. Please wait ${OTP_RATE_LIMIT_COOLDOWN_SECONDS}s and try again.`;
         }
 
         if (msg.includes('invalid token') || msg.includes('otp') || msg.includes('expired')) {
@@ -391,8 +392,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearPendingStudentLogin();
                     const source = `${otpError?.message || ''} ${otpError?.details || ''}`;
                     const waitMatch = source.match(/after\s+(\d+)\s*seconds?/i);
+                    const isRateLimited = String(otpError?.status || '') === '429'
+                        || String(otpError?.code || '') === '429'
+                        || /too many requests/i.test(source)
+                        || /email.*rate/i.test(source);
                     const waitSeconds = Number(waitMatch?.[1] || 0);
-                    if (waitSeconds > 0) {
+                    if (isRateLimited) {
+                        setOtpCooldown(Math.max(waitSeconds, OTP_RATE_LIMIT_COOLDOWN_SECONDS));
+                    } else if (waitSeconds > 0) {
                         setOtpCooldown(waitSeconds);
                     }
                     errorMessage.textContent = formatAuthError(otpError);
