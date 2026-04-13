@@ -6,8 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
     const loginForm = document.getElementById('login-form');
     const errorMessage = document.getElementById('error-message');
+    const submitButton = loginForm?.querySelector('button[type="submit"]');
     const PENDING_STUDENT_LOGIN_KEY = 'pending-student-login';
+    const OTP_COOLDOWN_KEY = 'student-otp-cooldown-until';
+    const OTP_DEFAULT_COOLDOWN_SECONDS = 8;
     const APP_INDEX_URL = new URL('index.html', window.location.href).href;
+    let isSendingOtp = false;
+    let otpCooldownTimer = null;
 
     function isPermissionDeniedError(error) {
         const message = (error?.message || '').toLowerCase();
@@ -31,8 +36,71 @@ document.addEventListener('DOMContentLoaded', () => {
             return 'Too many OTP requests. Please wait a minute and try again.';
         }
 
+        if (String(error?.status || '') === '429' || code === '429' || msg.includes('too many requests')) {
+            const source = `${error?.message || ''} ${error?.details || ''}`;
+            const waitMatch = source.match(/after\s+(\d+)\s*seconds?/i);
+            const seconds = Number(waitMatch?.[1] || OTP_DEFAULT_COOLDOWN_SECONDS);
+            return `Too many OTP requests. Please wait ${seconds}s and try again.`;
+        }
+
         return error?.message || 'An unexpected error occurred. Please try again.';
     }
+
+    function setSubmitState(disabled, label) {
+        if (!submitButton) return;
+        submitButton.disabled = disabled;
+        if (label) {
+            submitButton.innerHTML = `<i class="fa-solid fa-envelope"></i> ${label}`;
+        }
+    }
+
+    function getOtpCooldownUntil() {
+        try {
+            return Number(localStorage.getItem(OTP_COOLDOWN_KEY) || '0');
+        } catch {
+            return 0;
+        }
+    }
+
+    function setOtpCooldown(seconds) {
+        const safeSeconds = Math.max(1, Number(seconds || OTP_DEFAULT_COOLDOWN_SECONDS));
+        const until = Date.now() + safeSeconds * 1000;
+        try {
+            localStorage.setItem(OTP_COOLDOWN_KEY, String(until));
+        } catch {
+            // Ignore storage failures.
+        }
+        startOtpCooldownTicker();
+    }
+
+    function startOtpCooldownTicker() {
+        if (!submitButton) return;
+
+        if (otpCooldownTimer) {
+            clearInterval(otpCooldownTimer);
+            otpCooldownTimer = null;
+        }
+
+        const tick = () => {
+            const remainingMs = getOtpCooldownUntil() - Date.now();
+            if (remainingMs <= 0) {
+                setSubmitState(isSendingOtp, 'Send OTP Link');
+                if (otpCooldownTimer) {
+                    clearInterval(otpCooldownTimer);
+                    otpCooldownTimer = null;
+                }
+                return;
+            }
+
+            const remainingSec = Math.ceil(remainingMs / 1000);
+            setSubmitState(true, `Try again in ${remainingSec}s`);
+        };
+
+        tick();
+        otpCooldownTimer = setInterval(tick, 500);
+    }
+
+    startOtpCooldownTicker();
 
     function saveStudentSnapshot(student) {
         const payload = JSON.stringify(student);
@@ -217,6 +285,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginForm) {
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+
+            if (isSendingOtp) {
+                return;
+            }
+
+            const cooldownMs = getOtpCooldownUntil() - Date.now();
+            if (cooldownMs > 0) {
+                const seconds = Math.ceil(cooldownMs / 1000);
+                errorMessage.textContent = `Please wait ${seconds}s before requesting another OTP.`;
+                return;
+            }
+
             errorMessage.textContent = '';
             errorMessage.style.color = '';
 
@@ -224,6 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const studentId = document.getElementById('student-id').value.trim();
 
             try {
+                isSendingOtp = true;
+                setSubmitState(true, 'Sending...');
                 console.log('Attempting OTP login with email and student ID:', email, studentId);
 
                 // Clear stale session first to avoid identity confusion with previous logins.
@@ -263,16 +345,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (otpError) {
                     clearPendingStudentLogin();
+                    const source = `${otpError?.message || ''} ${otpError?.details || ''}`;
+                    const waitMatch = source.match(/after\s+(\d+)\s*seconds?/i);
+                    const waitSeconds = Number(waitMatch?.[1] || 0);
+                    if (waitSeconds > 0) {
+                        setOtpCooldown(waitSeconds);
+                    }
                     errorMessage.textContent = formatAuthError(otpError);
                     return;
                 }
 
+                setOtpCooldown(OTP_DEFAULT_COOLDOWN_SECONDS);
                 errorMessage.textContent = 'OTP login link sent. Check your email, open the link, and you will be signed in automatically.';
                 errorMessage.style.color = '#166534';
                 loginForm.reset();
             } catch (err) {
                 console.error('An unexpected error occurred:', err);
                 errorMessage.textContent = formatAuthError(err);
+            } finally {
+                isSendingOtp = false;
+                if (getOtpCooldownUntil() <= Date.now()) {
+                    setSubmitState(false, 'Send OTP Link');
+                }
             }
         });
     }
