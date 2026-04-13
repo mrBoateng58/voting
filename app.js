@@ -14,6 +14,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return error?.status === 401 || error?.status === 403 || error?.code === '42501' || message.includes('permission denied') || message.includes('forbidden');
     }
 
+    function formatAuthError(error) {
+        const code = String(error?.code || '').toLowerCase();
+        const msg = String(error?.message || '').toLowerCase();
+        const details = String(error?.details || '').toLowerCase();
+
+        if (code.includes('pgrst') || msg.includes('verify_student_login_identity') || details.includes('verify_student_login_identity')) {
+            return 'Login verification endpoint is missing. Ask admin to run secure-auth-schema.sql in Supabase SQL Editor.';
+        }
+
+        if (msg.includes('redirect') || msg.includes('not allowed') || msg.includes('url')) {
+            return 'OTP redirect URL is not allowed in Supabase Auth settings. Add your deployed URL and try again.';
+        }
+
+        if (msg.includes('email') && msg.includes('rate')) {
+            return 'Too many OTP requests. Please wait a minute and try again.';
+        }
+
+        return error?.message || 'An unexpected error occurred. Please try again.';
+    }
+
     function saveStudentSnapshot(student) {
         const payload = JSON.stringify(student);
         try {
@@ -198,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             errorMessage.textContent = '';
+            errorMessage.style.color = '';
 
             const email = document.getElementById('email').value.trim().toLowerCase();
             const studentId = document.getElementById('student-id').value.trim();
@@ -242,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (otpError) {
                     clearPendingStudentLogin();
-                    errorMessage.textContent = 'Could not send OTP email. Please try again.';
+                    errorMessage.textContent = formatAuthError(otpError);
                     return;
                 }
 
@@ -251,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginForm.reset();
             } catch (err) {
                 console.error('An unexpected error occurred:', err);
-                errorMessage.textContent = 'An unexpected error occurred. Please try again.';
+                errorMessage.textContent = formatAuthError(err);
             }
         });
     }
