@@ -19,7 +19,7 @@
                 <img src="images/WhatsApp Image 2025-11-27 at 18.02.26_d8b4db31.jpg" alt="Regent University">
             </div>
             <h2><i class="fa-solid fa-user-graduate"></i> Student Login</h2>
-            <p class="login-subtitle">Sign in with your school email and student ID. Then open the OTP link in the same browser to finish signing in.</p>
+            <p class="login-subtitle">Sign in with your school email and student ID. A one-time code will be sent to your email.</p>
             <form id="login-form" method="post" action="javascript:void(0);">
                 <div class="form-group">
                     <label for="email">Email</label>
@@ -29,7 +29,11 @@
                     <label for="student-id">Student ID</label>
                     <input type="text" id="student-id" name="student-id" autocomplete="off" required>
                 </div>
-                <button type="submit"><i class="fa-solid fa-envelope"></i> Send OTP Link</button>
+                <div class="form-group" id="otp-code-group" style="display: none;">
+                    <label for="otp-code">OTP Code</label>
+                    <input type="text" id="otp-code" name="otp-code" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter 6-digit code">
+                </div>
+                <button type="submit"><i class="fa-solid fa-envelope"></i> Send OTP Code</button>
             </form>
             <p id="error-message" class="error-message"></p>
         </div>

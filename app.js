@@ -7,11 +7,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const errorMessage = document.getElementById('error-message');
     const submitButton = loginForm?.querySelector('button[type="submit"]');
+    const otpCodeGroup = document.getElementById('otp-code-group');
+    const otpCodeInput = document.getElementById('otp-code');
     const PENDING_STUDENT_LOGIN_KEY = 'pending-student-login';
     const OTP_COOLDOWN_KEY = 'student-otp-cooldown-until';
+    const OTP_PENDING_MAX_AGE_MS = 10 * 60 * 1000;
     const OTP_DEFAULT_COOLDOWN_SECONDS = 8;
-    const APP_INDEX_URL = new URL('index.html', window.location.href).href;
     let isSendingOtp = false;
+    let isAwaitingOtpCode = false;
     let otpCooldownTimer = null;
 
     function isPermissionDeniedError(error) {
@@ -29,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (msg.includes('redirect') || msg.includes('not allowed') || msg.includes('url')) {
-            return 'OTP redirect URL is not allowed in Supabase Auth settings. Add your deployed URL and try again.';
+            return 'Auth redirect URL is not allowed in Supabase settings. Add your deployed URL and try again.';
         }
 
         if (msg.includes('email') && msg.includes('rate')) {
@@ -43,6 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return `Too many OTP requests. Please wait ${seconds}s and try again.`;
         }
 
+        if (msg.includes('invalid token') || msg.includes('otp') || msg.includes('expired')) {
+            return 'Invalid or expired OTP code. Request a new code and try again.';
+        }
+
         return error?.message || 'An unexpected error occurred. Please try again.';
     }
 
@@ -51,6 +58,22 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = disabled;
         if (label) {
             submitButton.innerHTML = `<i class="fa-solid fa-envelope"></i> ${label}`;
+        }
+    }
+
+    function setOtpMode(isAwaiting) {
+        isAwaitingOtpCode = !!isAwaiting;
+        if (otpCodeGroup) {
+            otpCodeGroup.style.display = isAwaitingOtpCode ? '' : 'none';
+        }
+        if (otpCodeInput) {
+            otpCodeInput.required = isAwaitingOtpCode;
+            if (!isAwaitingOtpCode) {
+                otpCodeInput.value = '';
+            }
+        }
+        if (!isSendingOtp) {
+            setSubmitState(false, isAwaitingOtpCode ? 'Verify OTP Code' : 'Send OTP Code');
         }
     }
 
@@ -131,7 +154,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function readPendingStudentLogin() {
         try {
             const raw = sessionStorage.getItem(PENDING_STUDENT_LOGIN_KEY);
-            return raw ? JSON.parse(raw) : null;
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (!parsed?.createdAt) return parsed;
+            if (Date.now() - Number(parsed.createdAt) > OTP_PENDING_MAX_AGE_MS) {
+                clearPendingStudentLogin();
+                return null;
+            }
+            return parsed;
         } catch {
             return null;
         }
@@ -145,22 +174,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleAuthCallback() {
-        const code = new URLSearchParams(window.location.search).get('code');
-        if (!code) {
-            return false;
-        }
+    async function completeStudentLogin(student) {
+        if (!student) return;
 
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-            console.error('Failed to exchange OTP code for session:', error);
-            errorMessage.textContent = 'Could not complete OTP sign-in. Please request a new link.';
+        const pendingLogin = readPendingStudentLogin();
+        if (pendingLogin) {
+            const pendingEmail = String(pendingLogin.email || '').toLowerCase();
+            const pendingStudentId = String(pendingLogin.studentId || '');
+            const studentEmail = String(student.email || '').toLowerCase();
+            const studentStudentId = String(student.student_id || '');
+
+            if (pendingEmail !== studentEmail || pendingStudentId !== studentStudentId) {
+                clearPendingStudentLogin();
+                await supabase.auth.signOut();
+                errorMessage.textContent = 'Student ID verification failed for this email. Please try again.';
+                setOtpMode(false);
+                return;
+            }
+
             clearPendingStudentLogin();
-            return false;
         }
 
-        window.history.replaceState({}, document.title, window.location.pathname);
-        return true;
+        saveStudentSnapshot(student);
+        const destination = await resolvePostLoginRoute(student.id);
+        window.location.href = destination;
     }
 
     async function resolvePostLoginRoute(studentId) {
@@ -253,32 +290,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     (async () => {
-        await handleAuthCallback();
+        setOtpMode(!!readPendingStudentLogin());
 
         // If a student is already authenticated, skip showing the login form again.
         hydrateStudentFromAuth().then(async (student) => {
             if (!student) return;
-
-            const pendingLogin = readPendingStudentLogin();
-            if (pendingLogin) {
-                const pendingEmail = String(pendingLogin.email || '').toLowerCase();
-                const pendingStudentId = String(pendingLogin.studentId || '');
-                const studentEmail = String(student.email || '').toLowerCase();
-                const studentStudentId = String(student.student_id || '');
-
-                if (pendingEmail !== studentEmail || pendingStudentId !== studentStudentId) {
-                    clearPendingStudentLogin();
-                    await supabase.auth.signOut();
-                    errorMessage.textContent = 'Student ID verification failed for this email. Please try again.';
-                    return;
-                }
-
-                clearPendingStudentLogin();
-            }
-
-            saveStudentSnapshot(student);
-            const destination = await resolvePostLoginRoute(student.id);
-            window.location.href = destination;
+            await completeStudentLogin(student);
         });
     })();
 
@@ -302,11 +319,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const email = document.getElementById('email').value.trim().toLowerCase();
             const studentId = document.getElementById('student-id').value.trim();
+            const otpCode = String(otpCodeInput?.value || '').trim();
 
             try {
                 isSendingOtp = true;
-                setSubmitState(true, 'Sending...');
-                console.log('Attempting OTP login with email and student ID:', email, studentId);
+                setSubmitState(true, isAwaitingOtpCode ? 'Verifying...' : 'Sending...');
+                console.log('Attempting student OTP flow with email and student ID:', email, studentId);
+
+                if (isAwaitingOtpCode) {
+                    if (!otpCode) {
+                        errorMessage.textContent = 'Enter the OTP code sent to your email.';
+                        return;
+                    }
+
+                    const { error: verifyError } = await supabase.auth.verifyOtp({
+                        email,
+                        token: otpCode,
+                        type: 'email'
+                    });
+
+                    if (verifyError) {
+                        errorMessage.textContent = formatAuthError(verifyError);
+                        return;
+                    }
+
+                    const student = await hydrateStudentFromAuth();
+                    if (!student) {
+                        errorMessage.textContent = 'Sign-in succeeded but no matching student profile was found.';
+                        return;
+                    }
+
+                    await completeStudentLogin(student);
+                    return;
+                }
 
                 // Clear stale session first to avoid identity confusion with previous logins.
                 try {
@@ -338,8 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { error: otpError } = await supabase.auth.signInWithOtp({
                     email,
                     options: {
-                        shouldCreateUser: true,
-                        emailRedirectTo: APP_INDEX_URL
+                        shouldCreateUser: true
                     }
                 });
 
@@ -356,16 +400,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 setOtpCooldown(OTP_DEFAULT_COOLDOWN_SECONDS);
-                errorMessage.textContent = 'OTP login link sent. Check your email, open the link, and you will be signed in automatically.';
+                setOtpMode(true);
+                errorMessage.textContent = 'OTP code sent. Enter the code from your email to continue.';
                 errorMessage.style.color = '#166534';
-                loginForm.reset();
             } catch (err) {
                 console.error('An unexpected error occurred:', err);
                 errorMessage.textContent = formatAuthError(err);
             } finally {
                 isSendingOtp = false;
                 if (getOtpCooldownUntil() <= Date.now()) {
-                    setSubmitState(false, 'Send OTP Link');
+                    setSubmitState(false, isAwaitingOtpCode ? 'Verify OTP Code' : 'Send OTP Code');
                 }
             }
         });
