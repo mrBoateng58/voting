@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tick = () => {
             const remainingMs = getOtpCooldownUntil() - Date.now();
             if (remainingMs <= 0) {
-                setSubmitState(isSendingOtp, 'Send OTP Link');
+                setSubmitState(isSendingOtp, isAwaitingOtpCode ? 'Verify OTP Code' : 'Send OTP Code');
                 if (otpCooldownTimer) {
                     clearInterval(otpCooldownTimer);
                     otpCooldownTimer = null;
