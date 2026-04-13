@@ -667,22 +667,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadStudents() {
         try {
-            const { data, error } = await supabaseAdmin
+            const { data: students, error: studentsError } = await supabaseAdmin
                 .from('students')
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
+            const { data: voteRows, error: votesError } = await supabaseAdmin
+                .from('votes')
+                .select('student_id');
+
+            if (studentsError) throw studentsError;
+            if (votesError) throw votesError;
+
+            const votedSet = new Set((voteRows || []).map(row => row.student_id));
 
             if (studentsList) {
-                studentsList.innerHTML = data.map(student => {
+                studentsList.innerHTML = (students || []).map(student => {
+                    const hasVoted = votedSet.has(student.id) || !!student.has_voted;
                     return `
                         <tr>
                             <td>${escapeHtml(student.name)}</td>
                             <td>${escapeHtml(student.student_id)}</td>
                             <td>${escapeHtml(student.email)}</td>
                             <td>${escapeHtml(student.department || '-')}</td>
-                            <td>${student.has_voted ? 'Yes' : 'No'}</td>
+                            <td>${hasVoted ? 'Yes' : 'No'}</td>
                             <td>
                                 <div class="row-actions">
                                 <button
